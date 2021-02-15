@@ -11,7 +11,7 @@ Cessna  Ce500 Citation I - configuration start (2)
 import numpy as np
 import control.matlab as cm
 import control as c
-
+np.set_printoptions(precision=5)
 
 class Cessna:
 
@@ -24,7 +24,7 @@ class Cessna:
         """
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                          # Prelimianry checks.
+                                   # Prelimianry checks.
           # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if muc < 90 or muc > 130:
             print("\n\n   Error in the input parameters ! \n\n")
@@ -33,12 +33,12 @@ class Cessna:
                           # AIRCRAFT FLIGHT CONDITION 'Start(2)'.
           # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        # V     = 59.9
+        self.V     = V
         g0    = 9.80665
         m     = 6035
-        # muc   = 113
+        self.muc   = muc
         twmuc = 2*muc
-        KY2   = 0.980
+        KY2   = 0.893
         c     = 2.022
         S     = 24.2
         lh    = 5.5
@@ -48,9 +48,11 @@ class Cessna:
         # sigma_u = 2
         # sigma_w = 3
         # Lg      = 150
+        self.sigma_u = sigma_u
+        self.sigma_w = sigma_w
 
-        sigma_ug   = sigma_u/V;
-        sigma_ag   = sigma_w/V;
+        self.sigma_ug   = sigma_u/V;
+        self.sigma_ag   = sigma_w/V;
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                               # AIRCRAFT SYMMETRIC AERODYNAMIC DERIVATIVES
@@ -120,67 +122,74 @@ class Cessna:
         mag  = ma;
         mfag = (V/c)*(Cmfag+CZfag*Cmfa/(twmuc-CZfa))/(twmuc*KY2);
 
-         # STATE- AND INPUT MATRICES
 
-        #c-matrix dimensions
+        # Matrix Dimensions
+
         n  = 4        # 4 orignal a/c states
         m  = 1      # 1 input (elevator deflection)
         p  = (5,2)  # 5 outputs
 
-        #     Creating the different c-matrices (c1, c2 &c3) for symmetrical flight
-        #c1 matrix
-        c1      = np.zeros((n,n))
-        c1[0,0] = -2*muc*(c/V)
-        c1[1,1] = (CZfa - 2*muc)*(c/V)
-        c1[2,2] = -(c/V)
-        c1[3,1] = Cmfa*(c/V)
-        c1[3,3] = -2*muc*KY2*((c/V)**2)
+        # #     Creating the different c-matrices (c1, c2 &c3) for symmetrical flight
+        # #c1 matrix
+        # c1      = np.zeros((n,n))
+        # c1[0,0] = -2*muc*(c/V)
+        # c1[1,1] = (CZfa - 2*muc)*(c/V)
+        # c1[2,2] = -(c/V)
+        # c1[3,1] = Cmfa*(c/V)
+        # c1[3,3] = -2*muc*KY2*((c/V)**2)
 
-        #c2 matrix
-        c2      = np.zeros((n,n))
-        c2[0,0] = -CXu
-        c2[0,1] = -CXa
-        c2[0,2] = -CZ0
-        c2[0,3] = -CXq*(c/V)
-        c2[1,0] = -CZu
-        c2[1,1] = -CZa
-        c2[1,2] = -CX0
-        c2[1,3] = -(CZq + 2*muc)*(c/V)
-        c2[2,3] = -(c/V)
-        c2[3,0] = -Cmu
-        c2[3,1] = -Cma
-        c2[3,3] = -Cmq*(c/V)
+        # #c2 matrix
+        # c2      = np.zeros((n,n))
+        # c2[0,0] = -CXu
+        # c2[0,1] = -CXa
+        # c2[0,2] = -CZ0
+        # c2[0,3] = -CXq*(c/V)
+        # c2[1,0] = -CZu
+        # c2[1,1] = -CZa
+        # c2[1,2] = -CX0
+        # c2[1,3] = -(CZq + 2*muc)*(c/V)
+        # c2[2,3] = -(c/V)
+        # c2[3,0] = -Cmu
+        # c2[3,1] = -Cma
+        # c2[3,3] = -Cmq*(c/V)
 
-        #c3 matrix
-        c3 = np.zeros((n,m))
-        c3[0,0] = -CXd
-        c3[1,0] = -CZd
-        c3[3,0] = -Cmd
-
-         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         #                 Basic Aircraft  Symmetric Model
-         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        A_s = np.dot(np.linalg.inv(c1), c2)
-        B_s = np.dot(np.linalg.inv(c1), c3)
-
-
+        # #c3 matrix
+        # c3 = np.zeros((n,m))
+        # c3[0,0] = -CXd
+        # c3[1,0] = -CZd
+        # c3[3,0] = -Cmd
 
          #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         #                 Symmetric Response to Turbulence
+         #                         Basic Aircraft  Symmetric Model
+         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        A_s = np.array([[xu, xa, xt, 0],
+                        [zu, za, zt, zq],
+                        [0, 0, 0, V/c],
+                        [mu, ma, mt, mq]])
+
+        B_s = np.array([[xd],
+                        [zd],
+                        [0],
+                        [md]])
+
+
+
+         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         #                      Symmetric Response to Turbulence
          #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
         A_12 = np.zeros((n,3))
         A_12 = np.array([[xug, xag, 0],
                          [zug-zfug*(c/Lg), zag, zfag*(c/V)],
-                         [0, 0, 0],
+                         [0,                0,            0],
                          [mug-mfug*(c/Lg), mag, mfag *(c/V)]])
 
         A_22 = np.zeros((3,3))
 
-        A_22 = np.array([[-V/Lg, 0, 0],
-                         [0, 0, 1],
+        A_22 = np.array([[-V/Lg,      0,          0],
+                         [0,          0,          1],
                          [0, -V**2/(Lg**2), -2*(V/Lg)]])
 
 
@@ -200,12 +209,12 @@ class Cessna:
 
         self.B[:n,:1] = B_s
         self.B[:,1:]  = np.array([[0,                                   0],
-                            [zfug*(c/V)*sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*sigma_ag*np.sqrt(3*V/Lg)],
+                            [zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)],
                             [0,                                        0],
-                            [mfug*(c/V)*sigma_ug*np.sqrt(2*V/Lg),  mfag*(c/V)*sigma_ag*np.sqrt(3*V/Lg)],
-                            [sigma_ug*np.sqrt(2*V/Lg),                0],
-                            [0,                                  sigma_ag*np.sqrt(3*V/Lg)],
-                            [0,                           (1-2*np.sqrt(3))*sigma_ag*np.power(V/Lg,1.5)]])
+                            [mfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg),  mfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)],
+                            [self.sigma_ug*np.sqrt(2*V/Lg),                0],
+                            [0,                                  self.sigma_ag*np.sqrt(3*V/Lg)],
+                            [0,                           (1-2*np.sqrt(3))*self.sigma_ag*np.power(V/Lg,1.5)]])
 
         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #                         Aircraft State Space
@@ -220,7 +229,7 @@ class Cessna:
                            [-V*zu/g0, -V*za/g0, zt/g0, (V*V/c - V*zq)/g0, -V*(zug-zfug*(c/Lg))/g0, -V*zag/g0, -V*zfag*(c/V)/g0]])
 
         self.D      = np.zeros((p,3))
-        self.D[1,:] = -V*np.array([zd, zfug*(c/V)*sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*sigma_ag*np.sqrt(3*V/Lg)])/g0
+        self.D[1,:] = -V*np.array([zd, zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)])/g0
 
 
         #Check the \g0 !!!
@@ -258,19 +267,6 @@ class Cessna:
         system = cm.minreal(cm.ss(self.A,self.B,self.C,self.D))
 
         return system
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
