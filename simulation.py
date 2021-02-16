@@ -12,12 +12,14 @@ import scipy as sp
 import scipy.signal
 import control.matlab as cm
 import control
-import  Cessna_model
+import Cessna_model
 import numpy.random
 import matplotlib.pyplot as plt
+# matplotlib.rcParams['text.usetex'] = True
+
 
 np.set_printoptions(precision=3)
-# np.random.seed(4)
+np.random.seed(3)
 
   #  Data and constants:
 V     = 59.9
@@ -28,15 +30,17 @@ c     = 2.022
 
 # TIME AXIS INPUT VECTOR DEFINITION
 dt    = 0.01               # sec
-T     = 200                # sec
+T     = 10000             # sec
 t     = np.arange(0,T,dt)  # sec - check for lickage
 N     = len(t)             # number of samples
 
-#Selected turbulence input:
+# Selected turbulence input:
     # 1 for w1  = horizontal
     # 2 for w3  = vertical
 
-windex = 1  # CHANGE THIS
+windex       = 2     # CHANGE THIS
+plottingflag = True
+
 
 # Number of Monte Carlo Iterations:
 Niter  = 1
@@ -91,7 +95,7 @@ def plotting(yout,t,u,title):
 
 
     plt.subplot(5,1,4);
-    plt.plot(t,y_q* 180/np.pi* (c/V))
+    plt.plot(t,y_q * V/c * 180/np.pi)
     plt.xlabel('t [s]');
     plt.ylabel(r'$q$ [deg/s]');
     plt.title('Pitch Rate');
@@ -105,12 +109,15 @@ def plotting(yout,t,u,title):
     plt.title('Load Factor');
     plt.grid("True")
 
-    print(title + str('plotted \n\n '))
+    print(title + str(' plotted \n\n '))
 
 
 
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                                       #  MODEL IMPORT
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    #  MODEL IMPORT
+
 cessna    = Cessna_model.Cessna()
 model_ss  = cessna.state_space()
 
@@ -119,11 +126,11 @@ model_ss  = cessna.state_space()
 
 #     # INPUT VECTOR DEFINITION
 # nn = np.zeros((1,N));                    # input elevator
-# w  = np.random.randn(N)/np.sqrt(dt);     # scaled input hor. turbulence the sqrt(dt) because of lsim
-u  = np.zeros((3,N))                     # input vector definition (vertical
+w  = np.random.randn(N)/np.sqrt(dt);     # scaled input hor. turbulence the sqrt(dt) because of lsim
+u  = np.zeros((3,N))                       # input vector definition (vertical
 
     # Pass on the turbulence input (horizonatal/ vertical):
-# u[windex,:] = w
+u[windex,:] = w
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                                 # STABILITY & PRELIMIANRY CHECKS
@@ -132,7 +139,7 @@ u  = np.zeros((3,N))                     # input vector definition (vertical
 # pole,zero = control.pzmap(model_ss,grid=True)
 H_matrix   = cm.ss2tf(model_ss)
 
-
+# H_matrix [output, input]
 
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -142,20 +149,23 @@ H_matrix   = cm.ss2tf(model_ss)
 
 # ---------------------------------- MONTE CARLO LOOP ---------------------------------------------
 
-ysum  = np.zeros((N,5))
 
-for n in range(Niter):
-
-        # REDEFINE INPUT VECTOR
-    w  = np.random.randn(N)/np.sqrt(dt);     # scaled input by sqrt(dt) because of lsim
-    u[windex,:] = w
-    yaux = cm.lsim(model_ss,np.transpose(u),t)[0]       # tranpose u because that's how lsim wants it.....
-    ysum = ysum + yaux
 
 if Niter > 1:
+    ysum  = np.zeros((N,5))
+
+    for n in range(Niter):
+
+            # REDEFINE INPUT VECTOR
+
+        yaux = cm.lsim(model_ss,np.transpose(u),t)[0]       # tranpose u because that's how lsim wants it.....
+        ysum = ysum + yaux
+
     yout  = ysum/Niter
 else:
-    yout = ysum
+    w  = np.random.randn(N)/np.sqrt(dt);     # scaled input by sqrt(dt) because of lsim
+    u[windex,:] = w
+    yout = cm.lsim(model_ss,np.transpose(u),t)[0]
 
 if yout.shape[1] !=5:
     print("Number of model states retreived is: " + str(yout.shape[1]))
@@ -175,16 +185,16 @@ if yout.shape[1] !=5:
                                 # Plotting Time Results
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+if not plottingflag:
+    if np.all(u[2,:] == 0. ) and np.all(u[0,:] == 0. ) :
+        print("\n\n   Plot response to horizontal turbulence... \n\n")
+        plotting(yout, t, u, title="Horizontal_turbulence")
 
-if np.all(u[2,:] == 0. ) and np.all(u[0,:] == 0. ) :
-    print("\n\n   Plot response to horizontal turbulence... \n\n")
-    plotting(yout, t, u, title="Horizontal_turbulence")
 
 
-
-if np.all(u[1,:] == 0. ) and np.all(u[0,:] == 0. ):
-    print("\n\n   Plot response to vertical turbulence.. \n\n")
-    plotting(yout, t, u, title="Vertical_turbulence")
+    if np.all(u[1,:] == 0. ) and np.all(u[0,:] == 0. ):
+        print("\n\n   Plot response to vertical turbulence.. \n\n")
+        plotting(yout, t, u, title="Vertical_turbulence")
 
 
 
@@ -195,18 +205,18 @@ if np.all(u[1,:] == 0. ) and np.all(u[0,:] == 0. ):
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 W = 1        # noise intensity
-W = W/dt     #CD scaling - this will be needed later for Lyapunov
+W = W/dt     # CD scaling - this will be needed later for Lyapunov
 
 
-# Define frequnecy axis:
+#      Define frequnecy axis:
 freq  = (1/T) * np.arange(1,N//2)
 omega = 2*np.pi*freq
 
 
-remove_states = False          #KEEP THIS !!!
+remove_states = False        #KEEP THIS !!!
 output_names  = ['u','alpha','theta','q','nz']
 
-# Dictionaries to store tfsand power spectral functions
+#    Dictionaries to store tfsand power spectral functions
 H           = {}   # transfer functions dict
 y           = {}   # time response dict
 Syy_ana     = {}   # spectral FUNCTION dict
@@ -216,6 +226,8 @@ Syy_expfilt = {}   # experimental FILTERED PERIODOGRAM
 mag_ana     = {}
 mag_exp     = {}
 mag_filt    = {}
+
+h  = {}    # cross transfer fucntion ??
 
 for i in range(len(output_names)):
 
@@ -237,7 +249,7 @@ for i in range(len(output_names)):
          # H[output_names[i]] = cm.minreal(cm.ss2tf(model_ss.A,model_ss.B[:,windex],model_ss.C[i,:],model_ss.D[i,windex]))
 
          # or by using H_matrix already defined in the previous section
-         H[output_names[i]] = cm.minreal(H_matrix[i,windex])
+         H[output_names[i]] = (H_matrix[i,windex])
 
     y[output_names[i]] = yout[:,i]
 
@@ -250,13 +262,20 @@ Suu = 1
 for i in range(len(output_names)):
     # w,mag,phase = control.bode(H[output_names[i]],omega)
     # Syy_ana[output_names[i]] = mag **2
-    Syy_ana[output_names[i]] =  H[output_names[i]] ** 2
+    Syy_ana[output_names[i]] =  H[output_names[i]]
 
         #signal.bode is different from cm.bode !!!!
 
 
+        #  Calcualte analytical Syy magnitude
+for i in range(len(output_names)):
+    # w,mag = sp.signal.freqs(Syy_ana[output_names[i]].num[0][0],Syy_ana[output_names[i]].den[0][0],omega)
+    mag = cm.bode(Syy_ana[output_names[i]],omega,Plot=False)[0]
+    mag_ana[output_names[i]] = np.power(np.absolute(np.real(mag)),2)
+
+
 # ------------------------------- EXPERIMENTAL METHOD ---------------------------------------------
-# --------------------------------  (Monte Carlo)   -----------------------------------------------
+
 
 Wexp = sp.fft.fft(w,N)
 
@@ -277,30 +296,32 @@ for i in range(len(output_names)):
                                          +0.25 * Syy_exp[output_names[i]][1:len(omega)-1]
 
 
-    # Plotting
+    # Plotting:
 
-for i in range(len(output_names)):
+label_lst =[r'$S_{uu}$',r'$S_{\alpha \alpha}$',r'$S_{\theta \theta}$',r'$S_{qc/V qc/V}$',r'$S_{n_{z} n_{z}}$']
+unit_lst = [r' [$rad^2$',r' [$rad^2$',r' [$rad^2$',r' [$rad^2$',r' [$1$']
 
-    # Calcualte experimental Syy magnitude
-    mag_exp[output_names[i]]  = np.absolute(Syy_exp[output_names[i]][1:N//2])    # experimental (no filter)
-    mag_filt[output_names[i]] = np.absolute(Syy_expfilt[output_names[i]][1:N//2])   # WITH filter
+if plottingflag:
+    for i in range(len(output_names)):
+
+        # Calcualte experimental Syy magnitude
+        mag_exp[output_names[i]]  = np.absolute(Syy_exp[output_names[i]][1:N//2])    # experimental (no filter)
+        mag_filt[output_names[i]] = np.absolute(Syy_expfilt[output_names[i]][1:N//2])   # WITH filter
 
 
-    #Calcualte analytical Syy magnitude
-    w,h = sp.signal.freqs(Syy_ana[output_names[i]].num[0][0],Syy_ana[output_names[i]].den[0][0],omega)
-    mag_ana[output_names[i]] = np.absolute(np.real(h))
 
-    plotname = str("Syy_" + output_names[i])
-    plt.figure(plotname)
-    plt.loglog(omega,mag_exp[output_names[i]],'-',  c = 'blue',  label = 'Experimental')
-    plt.loglog(omega,mag_filt[output_names[i]],'-', c = 'green', label = 'Exp. Filtered')
-    plt.loglog(omega,mag_ana[output_names[i]],'--', c = 'red'  , label = 'Analytical')
 
-    plt.grid(True)
-    plt.legend(loc='best')
-    plt.xlabel(r"$\omega$ [rad/s]")
-    plt.ylabel(r"$|S_{yy}|$ [$rad^2$/Hz]")
-    # plt.ylim(EPS/10,10)
+        plotname = str("Syy_" + output_names[i] + '_v')
+        plt.figure(plotname)
+        plt.loglog(omega,mag_exp[output_names[i]],'-',  c = 'blue',  label = 'Experimental')
+        plt.loglog(omega,mag_filt[output_names[i]],'-', c = 'green', label = 'Exp. Filtered')
+        plt.loglog(omega,mag_ana[output_names[i]],'--', c = 'red'  , label = 'Analytical')
+
+        plt.grid(True)
+        plt.legend(loc='best')
+        plt.xlabel(r"$\omega$ [rad/s]")
+        plt.ylabel(label_lst[i] + unit_lst[i] + '/Hz]')
+        # plt.ylim(EPS/10,10)
 
 
 
@@ -308,14 +329,15 @@ for i in range(len(output_names)):
                                     # VARIANCE CALCULATIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-sigma_ana  = {}
+sigma_lyap = {}
 sigma_freq = {}
 sigma_time = {}
-
+sigma_tran = {}      # numerical integration of cross transfer fucntions
 
 # ---------------------------------- 0 Lyapunov Equation ------------------------------------------
     # !!!!!!!!!! BBUGGED !!!!!
 W   = 1
+Wc  = W/dt
 Bin = model_ss.B[:,windex]
 Q   = np.dot(Bin,W*np.transpose(Bin))
 
@@ -323,29 +345,58 @@ Q   = np.dot(Bin,W*np.transpose(Bin))
 Cxx_ss = cm.lyap(model_ss.A,Q)
 
 for i in range(len(output_names)-1):   #sigma-nz will not be calcualted
-    sigma_ana[output_names[i]] = (Cxx_ss[i,i])
+    sigma_lyap[output_names[i]] = (Cxx_ss[i,i])
 
 
 # ---------------------------------- 1 Power Spectral Density -------------------------------------
 
 for i in range(len(output_names)):
-
     sigma_aux = (1/np.pi) * sp.integrate.simps(mag_ana[output_names[i]],omega)
     sigma_freq[output_names[i]] = sigma_aux
 
 
-# ---------------------------------- 2 Transfer Function ------------------------------------------
+# ---------------------------------- 2 Transfer Functions -----------------------------------------
+
+#  CALCULATION OF PRODUCT MATRIX OF IMPULSE RESPONSES
+
+    # define a longer time:
+ext  = 1
+textended = np.arange(0,ext*T,dt/ext)
+x0        = model_ss.B[:,windex]
+u_impulse = np.zeros((ext*N*ext,3))
+
+    # Model impulse response:
+h_matrix  = cm.lsim(model_ss,u_impulse,textended,x0)[0]
+# h_matrix  = sp.signal.impulse(model_LTI,x0,textended)[1]
 
 
-# --------------------------------- 3 Time domanin Variance ---------------------------------------
+for i in range(len(output_names)):
+        h[output_names[i]+output_names[i]] = np.power(h_matrix[:,i],2)
+        # h[output_names[i]+output_names[i]]  = sp.signal.impulse(H[output_names[i]],x0,textended)[1]
+        # h[output_names[i]+output_names[i]] = np.power(cm.lsim(H[output_names[i]],u_impulse[:,0],textended,x0[:5])[0],2)
+
+
+for k in range(len(output_names)):
+    sigma_tran[output_names[k]+output_names[k]] = sp.integrate.simps(h[output_names[k]+output_names[k]],textended)
+
+
+# Cuu_lst = np.zeros((N))
+# for n in range(1,N):
+#     Cuu_lst[n] = h[output_names[2]+output_names[2]][n]*dt + Cuu_lst[n-1]
+
+# --------------------------------- 3 Time Domanin Variance ---------------------------------------
 
 for i in range(len(output_names)):
     sigma_time[output_names[i]] = np.var(y[output_names[i]])
 
 
+avg_sig_lst = []
 
-
-print(sigma_ana,sigma_time,sigma_freq,sep='\n')  #time and freq seem to be close enough (same Order of Magnitude)
+for i in range(len(output_names)):
+    avg_sig= (sigma_time[output_names[i]]+sigma_freq[output_names[i]])/2
+    print(output_names[i],end='\t')
+    print( " %.3f  %.3f  %.3f" %(sigma_time[output_names[i]]/avg_sig,sigma_freq[output_names[i]]/avg_sig,sigma_tran[output_names[i]+output_names[i]]/avg_sig))
+    avg_sig_lst.append(avg_sig)
 
 plt.show()
 

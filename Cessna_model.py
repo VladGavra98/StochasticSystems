@@ -208,13 +208,27 @@ class Cessna:
 
 
         self.B[:n,:1] = B_s
-        self.B[:,1:]  = np.array([[0,                                   0],
+        self.B[:,1:]  = np.array([[0.0,                                   0.0                                   ],
                             [zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)],
-                            [0,                                        0],
+                            [0.0,                                        0.0                                   ],
                             [mfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg),  mfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)],
-                            [self.sigma_ug*np.sqrt(2*V/Lg),                0],
-                            [0,                                  self.sigma_ag*np.sqrt(3*V/Lg)],
-                            [0,                           (1-2*np.sqrt(3))*self.sigma_ag*np.power(V/Lg,1.5)]])
+                            [self.sigma_ug*np.sqrt(2*V/Lg),                                                  0.0],
+                            [0.0 ,                                 self.sigma_ag*np.sqrt(3*V/Lg)],
+                            [0.0,                           (1-2*np.sqrt(3))*self.sigma_ag*np.power(V/Lg,1.5)]])
+
+        self.Bnew = np.array([[ xd,    0.0,                                       0.0                                   ],
+                            [ zd,   zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)],
+                            [ 0.0 , 0.0,                                        0.0                                   ],
+                            [  md,  mfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg),  mfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)],
+                            [ 0.0 , self.sigma_ug*np.sqrt(2*V/Lg),                      0.0                           ],
+                            [ 0.0,          0.0   ,                               self.sigma_ag*np.sqrt(3*V/Lg)],
+                            [  0.0,  0.0,                           (1-2*np.sqrt(3))*self.sigma_ag*np.power(V/Lg,1.5)]])
+
+        if not np.allclose(self.B,self.Bnew):
+            print("Error in !?")
+            print(self.B)
+            print(self.Bnew)
+
 
         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #                         Aircraft State Space
@@ -222,14 +236,22 @@ class Cessna:
         #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
         p = 5
-        self.C = np.array([[1, 0, 0, 0, 0, 0, 0],
-                           [0, 1, 0, 0, 0, 0, 0],
-                           [0, 0, 1, 0, 0, 0, 0],
-                           [0, 0, 0, 1, 0, 0, 0],
-                           [-V*zu/g0, -V*za/g0, zt/g0, (V*V/c - V*zq)/g0, -V*(zug-zfug*(c/Lg))/g0, -V*zag/g0, -V*zfag*(c/V)/g0]])
+        # self.C = np.array([[1, 0, 0, 0, 0, 0, 0],
+        #                    [0, 1, 0, 0, 0, 0, 0],
+        #                    [0, 0, 1, 0, 0, 0, 0],
+        #                    [0, 0, 0, 1, 0, 0, 0],
+        #                    [-V*zu/g0, -V*za/g0, -zt/g0, (V*V/c - V*zq)/g0, -V*(zug-zfug*(c/Lg))/g0, -V*zag/g0, -V*zfag*(c/V)/g0]])
+
+        self.C =np.array([[1, 0, 0, 0, 0, 0, 0],
+                          [0, 1, 0, 0, 0, 0, 0],
+                          [0, 0, 1, 0, 0, 0, 0],
+                          [0, 0, 0, 1, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0]])
+
+        self.C[4,:] = V/g0 * (self.A[2,:] - self.A[1,:])   #  n_z = V/g0 *thet_dot - V/g0 * alpha_dot
 
         self.D      = np.zeros((p,3))
-        self.D[1,:] = -V*np.array([zd, zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)])/g0
+        self.D[4,:] = -V*np.array([zd, zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)])/g0
 
 
         #Check the \g0 !!!
@@ -264,10 +286,9 @@ class Cessna:
         if(np.shape(self.D) != (5,3)):
             print("Wrong matrix D\n")
 
-        system = cm.minreal(cm.ss(self.A,self.B,self.C,self.D))
+        system = cm.ss(self.A,self.Bnew,self.C,self.D)
 
         return system
-
 
 
 
