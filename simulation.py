@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 
 np.set_printoptions(precision=3)
-np.random.seed(3)
+# np.random.seed(3)
 
   #  Data and constants:
 V     = 59.9
@@ -30,7 +30,7 @@ c     = 2.022
 
 # TIME AXIS INPUT VECTOR DEFINITION
 dt    = 0.01               # sec
-T     = 10000             # sec
+T     = 10000               # sec
 t     = np.arange(0,T,dt)  # sec - check for lickage
 N     = len(t)             # number of samples
 
@@ -38,7 +38,8 @@ N     = len(t)             # number of samples
     # 1 for w1  = horizontal
     # 2 for w3  = vertical
 
-windex       = 2     # CHANGE THIS
+turb_lst = ['none','horizontal','vertical']
+windex       = 2   # CHANGE THIS
 plottingflag = True
 
 
@@ -46,7 +47,7 @@ plottingflag = True
 Niter  = 1
 EPS    = 10e-12
 
-
+print("Turbulence modelled: " + str(turb_lst[windex]))
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                                        # HELPER FUNCTIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -122,7 +123,9 @@ cessna    = Cessna_model.Cessna()
 model_ss  = cessna.state_space()
 
 
-
+H_matrix   = cm.ss2tf(model_ss)
+model_LTI  = sp.signal.lti(model_ss.A,model_ss.B,model_ss.C,model_ss.D)
+model_dLTI = sp.signal.dlti(model_LTI,dt)
 
 #     # INPUT VECTOR DEFINITION
 # nn = np.zeros((1,N));                    # input elevator
@@ -136,8 +139,7 @@ u[windex,:] = w
                                 # STABILITY & PRELIMIANRY CHECKS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# pole,zero = control.pzmap(model_ss,grid=True)
-H_matrix   = cm.ss2tf(model_ss)
+pole,zero = control.pzmap(model_ss,grid=True)
 
 # H_matrix [output, input]
 
@@ -148,9 +150,6 @@ H_matrix   = cm.ss2tf(model_ss)
 
 
 # ---------------------------------- MONTE CARLO LOOP ---------------------------------------------
-
-
-
 if Niter > 1:
     ysum  = np.zeros((N,5))
 
@@ -269,9 +268,9 @@ for i in range(len(output_names)):
 
         #  Calcualte analytical Syy magnitude
 for i in range(len(output_names)):
-    # w,mag = sp.signal.freqs(Syy_ana[output_names[i]].num[0][0],Syy_ana[output_names[i]].den[0][0],omega)
-    mag = cm.bode(Syy_ana[output_names[i]],omega,Plot=False)[0]
-    mag_ana[output_names[i]] = np.power(np.absolute(np.real(mag)),2)
+    w,mag = sp.signal.freqs(Syy_ana[output_names[i]].num[0][0],Syy_ana[output_names[i]].den[0][0],omega)
+    # mag = cm.bode(Syy_ana[output_names[i]],omega,Plot=False)[0]
+    mag_ana[output_names[i]] = np.power((np.abs(mag)),2)
 
 
 # ------------------------------- EXPERIMENTAL METHOD ---------------------------------------------
@@ -307,8 +306,6 @@ if plottingflag:
         # Calcualte experimental Syy magnitude
         mag_exp[output_names[i]]  = np.absolute(Syy_exp[output_names[i]][1:N//2])    # experimental (no filter)
         mag_filt[output_names[i]] = np.absolute(Syy_expfilt[output_names[i]][1:N//2])   # WITH filter
-
-
 
 
         plotname = str("Syy_" + output_names[i] + '_v')
@@ -355,18 +352,19 @@ for i in range(len(output_names)):
     sigma_freq[output_names[i]] = sigma_aux
 
 
-# ---------------------------------- 2 Transfer Functions -----------------------------------------
+# ---------------------------------- 2 Transfer Functions BUGGED DUE TO LSIM-----------------------------------------
 
 #  CALCULATION OF PRODUCT MATRIX OF IMPULSE RESPONSES
 
     # define a longer time:
-ext  = 1
-textended = np.arange(0,ext*T,dt/ext)
-x0        = model_ss.B[:,windex]
+ext       = 1
+textended = np.arange(0,T,dt)
+x0        = model_ss.B[:,windex].reshape(7)
 u_impulse = np.zeros((ext*N*ext,3))
 
     # Model impulse response:
-h_matrix  = cm.lsim(model_ss,u_impulse,textended,x0)[0]
+
+h_matrix  = sp.signal.lsim(model_LTI,u_impulse,textended,x0)[1]
 # h_matrix  = sp.signal.impulse(model_LTI,x0,textended)[1]
 
 
@@ -376,13 +374,23 @@ for i in range(len(output_names)):
         # h[output_names[i]+output_names[i]] = np.power(cm.lsim(H[output_names[i]],u_impulse[:,0],textended,x0[:5])[0],2)
 
 
+      # Initilization of sigmas:
 for k in range(len(output_names)):
-    sigma_tran[output_names[k]+output_names[k]] = sp.integrate.simps(h[output_names[k]+output_names[k]],textended)
+      sigma_tran[output_names[k]+output_names[k]] = 0
 
+      # Manual integration:
+for epoch in range(N):
+    for k in range(len(output_names)):
+        sigma_tran[output_names[k]+output_names[k]]+= dt*h[output_names[k]+output_names[k]][epoch]
+
+    # SciPy integration:
+# for k in range(len(output_names)):
+#         sigma_tran[output_names[k]+output_names[k]] = sp.integrate.simps(h[output_names[k]+output_names[k]],textended)
 
 # Cuu_lst = np.zeros((N))
 # for n in range(1,N):
 #     Cuu_lst[n] = h[output_names[2]+output_names[2]][n]*dt + Cuu_lst[n-1]
+
 
 # --------------------------------- 3 Time Domanin Variance ---------------------------------------
 
@@ -392,10 +400,19 @@ for i in range(len(output_names)):
 
 avg_sig_lst = []
 
+
+# --------------------------------- PRINTING VARIANCES ---------------------------------------
+
+print("Variable \t Time     PSD  ")
+
 for i in range(len(output_names)):
+
     avg_sig= (sigma_time[output_names[i]]+sigma_freq[output_names[i]])/2
-    print(output_names[i],end='\t')
-    print( " %.3f  %.3f  %.3f" %(sigma_time[output_names[i]]/avg_sig,sigma_freq[output_names[i]]/avg_sig,sigma_tran[output_names[i]+output_names[i]]/avg_sig))
+
+    print(output_names[i],end=' ')
+    # print( " %.3f  %.3f  %.3f" %(sigma_time[output_names[i]]/avg_sig,sigma_freq[output_names[i]]/avg_sig,sigma_tran[output_names[i]+output_names[i]]/avg_sig))
+    print( "\t %.5e \t %.3e  " %(sigma_time[output_names[i]],sigma_freq[output_names[i]]))
+
     avg_sig_lst.append(avg_sig)
 
 plt.show()
