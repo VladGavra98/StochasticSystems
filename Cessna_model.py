@@ -92,35 +92,34 @@ class Cessna:
          #                 CALCULATION OF AIRCRAFT SYMMETRIC STABILITY DERIVATIVES
          #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        xu   = (V/c)*(CXu/twmuc);
-        xa   = (V/c)*(CXa/twmuc);
-        xt   = (V/c)*(CZ0/twmuc);
-        xq   = 0;
-        xd   = (V/c)*(CXd/twmuc);
-        xug  = xu;
-        xfug = 0;
-        xag  = xa;
-        xfag = 0;
+        xu   = (V/c)*(CXu/twmuc)
+        xa   = (V/c)*(CXa/twmuc)
+        xt   = (V/c)*(CZ0/twmuc)
+        xd   = (V/c)*(CXd/twmuc)
+        xug  = xu
+        xfug = 0
+        xag  = xa
+        xfag = 0
 
-        zu   = (V/c)*( CZu/(twmuc-CZfa));
-        za   = (V/c)*( CZa/(twmuc-CZfa));
-        zt   = (V/c)*(-CX0/(twmuc-CZfa));
-        zq   = (V/c)*((CZq+twmuc)/(twmuc-CZfa));
+        zu   = (V/c)*( CZu/(twmuc-CZfa))
+        za   = (V/c)*( CZa/(twmuc-CZfa))
+        zt   = (V/c)*(-CX0/(twmuc-CZfa))
+        zq   = (V/c)*((CZq+twmuc)/(twmuc-CZfa))
         zd   = (V/c)*( CZd/(twmuc-CZfa));
-        zug  = zu;
-        zfug = (V/c)*( CZfug/(twmuc-CZfa));
-        zag  = za;
-        zfag = (V/c)*( CZfag/(twmuc-CZfa));
+        zug  = zu
+        zfug = (V/c)*( CZfug/(twmuc-CZfa))
+        zag  = za
+        zfag = (V/c)*( CZfag/(twmuc-CZfa))
 
-        mu   = (V/c)*(( Cmu+CZu*Cmfa/(twmuc-CZfa))/(twmuc*KY2));
-        ma   = (V/c)*(( Cma+CZa*Cmfa/(twmuc-CZfa))/(twmuc*KY2));
-        mt   = (V/c)*((-CX0*Cmfa/(twmuc-CZfa))/(twmuc*KY2));
-        mq   = (V/c)*(Cmq+Cmfa*(twmuc+CZq)/(twmuc-CZfa))/(twmuc*KY2);
-        md   = (V/c)*((Cmd+CZd*Cmfa/(twmuc-CZfa))/(twmuc*KY2));
-        mug  = mu;
-        mfug = (V/c)*(Cmfug+CZfug*Cmfa/(twmuc-CZfa))/(twmuc*KY2);
+        mu   = (V/c)*(( Cmu+CZu*Cmfa/(twmuc-CZfa))/(twmuc*KY2))
+        ma   = (V/c)*(( Cma+CZa*Cmfa/(twmuc-CZfa))/(twmuc*KY2))
+        mt   = (V/c)*((-CX0*Cmfa/(twmuc-CZfa))/(twmuc*KY2))
+        mq   = (V/c)*(Cmq+Cmfa*(twmuc+CZq)/(twmuc-CZfa))/(twmuc*KY2)
+        md   = (V/c)*((Cmd+CZd*Cmfa/(twmuc-CZfa))/(twmuc*KY2))
+        mug  = mu
+        mfug = (V/c)*(Cmfug+CZfug*Cmfa/(twmuc-CZfa))/(twmuc*KY2)
         mag  = ma;
-        mfag = (V/c)*(Cmfag+CZfag*Cmfa/(twmuc-CZfa))/(twmuc*KY2);
+        mfag = (V/c)*(Cmfag+CZfag*Cmfa/(twmuc-CZfa))/(twmuc*KY2)
 
 
         # Matrix Dimensions
@@ -246,11 +245,12 @@ class Cessna:
                           [0, 1, 0, 0, 0, 0, 0],
                           [0, 0, 1, 0, 0, 0, 0],
                           [0, 0, 0, 1, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0]])
+                          [0, 0, 0, 0, 0, 0, 0]],dtype=float)
 
-        self.C[4,:] = V/g0 * (self.A[2,:] - self.A[1,:])   #  n_z = V/g0 *thet_dot - V/g0 * alpha_dot
+        self.C[4,:] = V/g0 * (self.A[2,:] - self.A[1,:])   #  n_z = V/g0 *theta_dot - V/g0 * alpha_dot
 
-        self.D      = np.zeros((p,3))
+
+        self.D      = np.zeros((p,3),dtype=float)
         self.D[4,:] = -V*np.array([zd, zfug*(c/V)*self.sigma_ug*np.sqrt(2*V/Lg), zfag*(c/V)*self.sigma_ag*np.sqrt(3*V/Lg)])/g0
 
 
@@ -290,6 +290,8 @@ class Cessna:
 
         return system
 
+cessna    = Cessna()
+model_ss  = cessna.state_space()
 
 
 

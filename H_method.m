@@ -149,7 +149,7 @@ N     = length(t);             % number of samples
     % 2 for w1  = horizontal
     % 3 for w3  = vertical
 
-windex       = 3;    % CHANGE THIS
+windex       = 2;    % CHANGE THIS
 
 turb_lst = {'zero', "horizontal", 'vertical'};
 disp('Turbulence mode: ');
@@ -168,10 +168,10 @@ for i=1:5
     var_lyap(i) = L(i,i);
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Method 3.                 TIME VARIANCE
+% Method 3.                  TIME VARIANCE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+u_noise = zeros(3,N);
 u_noise(windex,1:N) = randn(1,N)/sqrt(dt);
 yout = lsim(model_ss,u_noise,t);
 
@@ -236,8 +236,8 @@ for i=1:N-1
     var55(i+1) = var55(i) + dth55(i);
 end
 
-fprintf("var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var11(end), var_lyap(1), var_time(1));
-fprintf("var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var22(end), var_lyap(2), var_time(2));
-fprintf("var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var33(end), var_lyap(3), var_time(3));
-fprintf("var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var44(end), var_lyap(4), var_time(4));
-fprintf("var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var55(end), var_lyap(5), var_time(5));
+fprintf(" u var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var11(end), var_lyap(1), var_time(1));
+fprintf("alpha var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var22(end), var_lyap(2), var_time(2));
+fprintf("theta var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var33(end), var_lyap(3), var_time(3));
+fprintf(" q var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var44(end), var_lyap(4), var_time(4));
+fprintf(" nz var_H = %1.10f, var_lya = %1.10f var_time = %1.10f \n",var55(end), var_lyap(5), var_time(5));

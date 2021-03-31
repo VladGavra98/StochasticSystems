@@ -17,6 +17,14 @@ import numpy.random
 import matplotlib.pyplot as plt
 # matplotlib.rcParams['text.usetex'] = True
 
+plt.rc('font', size=14) #controls default text size
+plt.rc('axes', titlesize=18) #fontsize of the title
+plt.rc('axes', labelsize=14) #fontsize of the x and y labels
+plt.rc('xtick', labelsize=12) #fontsize of the x tick labels
+plt.rc('ytick', labelsize=12) #fontsize of the y tick labels
+plt.rc('legend', fontsize=13) #fontsize of the legend
+
+
 
 np.set_printoptions(precision=3)
 # np.random.seed(3)
@@ -30,7 +38,7 @@ c     = 2.022
 
 # TIME AXIS INPUT VECTOR DEFINITION
 dt    = 0.01               # sec
-T     = 10000               # sec
+T     = 10000         # sec
 t     = np.arange(0,T,dt)  # sec - check for lickage
 N     = len(t)             # number of samples
 
@@ -39,9 +47,9 @@ N     = len(t)             # number of samples
     # 2 for w3  = vertical
 
 turb_lst = ['none','horizontal','vertical']
-windex       = 2   # CHANGE THIS
-plottingflag = True
-
+windex       = 1            # CHANGE THIS
+plottingflag = True         # Switch for plotting in time (False) or frequency (True)
+combined_plot= True
 
 # Number of Monte Carlo Iterations:
 Niter  = 1
@@ -53,7 +61,7 @@ print("Turbulence modelled: " + str(turb_lst[windex]))
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-def plotting(yout,t,u,title):
+def plotting(yout_lst,t,u,title,figure=None):
     """
     Plots the time traces for the output variables [u, alpha, theta,q,n_z] according to a turbulence model
 
@@ -62,7 +70,7 @@ def plotting(yout,t,u,title):
     """
     # Get each a/c state + the load factor
 
-    plt.figure(str(title))
+    fig = plt.figure(str(title))
 
     y_u     = yout[:,0]           # -
     y_alpha = yout[:,1]       # rad
@@ -72,48 +80,132 @@ def plotting(yout,t,u,title):
 
     plt.tight_layout()
     plt.subplot(5,1,1);
-    plt.plot(t,y_u * V)
-    plt.xlabel('t [s]');
-    plt.ylabel(r'$u$ [m/s]');
-    plt.title('Airspeed Deviation');
+    plt.plot(t,y_u)
+    # plt.xlabel('t [s]');
+    plt.ylabel(r'$\hat{u}$ [-]');
+    # plt.title('Airspeed Deviation');
     plt.grid("True")
+    plt.xlim(0,T)
 
     # There might a mistake which resutls in weired AoA variations
     plt.subplot(5,1,2);
-    plt.plot(t,y_alpha*180/np.pi)
-    plt.xlabel('t [s]');
+    plt.plot(t,y_alpha* 180/np.pi)
+    # plt.xlabel('t [s]');
     plt.ylabel(r'$\alpha$ [deg]');
-    plt.title('Angle of Attack');
+    # plt.title('Angle of Attack');
     plt.grid("True")
+    plt.xlim(0,T)
 
 
     plt.subplot(5,1,3);
-    plt.plot(t,y_theta*180/np.pi)
-    plt.xlabel('t [s]');
+    plt.plot(t,y_theta* 180/np.pi)
+    # plt.xlabel('t [s]');
     plt.ylabel(r'$\theta$ [deg]');
-    plt.title('Pitch Angle');
+    # plt.title('Pitch Angle');
     plt.grid("True")
+    plt.xlim(0,T)
 
 
     plt.subplot(5,1,4);
-    plt.plot(t,y_q * V/c * 180/np.pi)
-    plt.xlabel('t [s]');
-    plt.ylabel(r'$q$ [deg/s]');
-    plt.title('Pitch Rate');
+    plt.plot(t,y_q * 180/np.pi)
+    # plt.xlabel('t [s]');
+    plt.ylabel(r'$q$ [deg]');
+    # plt.title('Pitch Rate');
     plt.grid("True")
+    plt.xlim(0,T)
 
 
     plt.subplot(5,1,5);
     plt.plot(t,y_nz)
     plt.xlabel('t [s]');
-    plt.ylabel(r'$n_z$ [deg/s]');
-    plt.title('Load Factor');
+    plt.ylabel(r'$n_z$ [-]');
+    # plt.title('Load Factor');
     plt.grid("True")
+    plt.xlim(0,T)
 
     print(title + str(' plotted \n\n '))
 
+    return fig
+
+def plotting_combined(yout_h,yout_v,t,u,title,figure=None):
+    """
+    Plots the time traces for the output variables [u, alpha, theta,q,n_z] according to a turbulence model
+
+    The model is selected beforeahnd, when the yout response is simulated.
+
+    """
+    # Get each a/c state + the load factor
+
+    fig = plt.figure(str(title))
+
+    y_uh     = yout_h[:,0]           # -
+    y_alphah = yout_h[:,1]       # rad
+    y_thetah = yout_h[:,2]       # rad
+    y_qh     = yout_h[:,3]      # rad/s
+    y_nzh    = yout_h[:,4]      # g
+
+    y_uv     = yout_v[:,0]           # -
+    y_alphav = yout_v[:,1]       # rad
+    y_thetav = yout_v[:,2]       # rad
+    y_qv     = yout_v[:,3]      # rad/s
+    y_nzv    = yout_v[:,4]      # g
+
+    plt.tight_layout()
+
+    plt.subplot(5,1,1)
+    plt.plot(t,y_uh,label="Horizontal",c='b')
+    plt.plot(t,y_uv,label="Vertical",c='orange')
+    # plt.xlabel('t [s]');
+    plt.ylabel(r'$\hat{u}$ [-]');
+    # plt.title('Airspeed Deviation');
+    plt.grid("True")
+    plt.legend()
+    plt.xlim(0,T)
+
+    # There might a mistake which resutls in weired AoA variations
+    plt.subplot(5,1,2)
+    plt.plot(t,y_alphah* 180/np.pi,c='b')
+    plt.plot(t,y_alphav* 180/np.pi,c='orange')
+    # plt.xlabel('t [s]');
+    plt.ylabel(r'$\alpha$ [deg]');
+    # plt.title('Angle of Attack');
+    plt.grid("True")
+    plt.xlim(0,T)
 
 
+    plt.subplot(5,1,3)
+    plt.plot(t,y_thetah* 180/np.pi,c='b')
+    plt.plot(t,y_thetav* 180/np.pi,c='orange')
+    # plt.xlabel('t [s]');
+    plt.ylabel(r'$\theta$ [deg]');
+    # plt.title('Pitch Angle');
+    plt.grid("True")
+    plt.xlim(0,T)
+
+
+    plt.subplot(5,1,4)
+    plt.plot(t,y_qv * 180/np.pi,c='orange')
+    plt.plot(t,y_qh * 180/np.pi,c='b')
+
+    # plt.xlabel('t [s]');
+    plt.ylabel(r'$q$ [deg]');
+    # plt.title('Pitch Rate');
+    plt.grid("True")
+    plt.xlim(0,T)
+
+
+    plt.subplot(5,1,5)
+    plt.plot(t,y_nzv,c='orange')
+    plt.plot(t,y_nzh,c='b')
+    plt.xlabel('t [s]');
+    plt.ylabel(r'$n_z$ [-]');
+    # plt.title('Load Factor');
+    plt.grid("True")
+    plt.xlim(0,T)
+
+    print(title + str(' plotted \n\n '))
+
+    return fig
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                                        #  MODEL IMPORT
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -129,8 +221,10 @@ model_dLTI = sp.signal.dlti(model_LTI,dt)
 
 #     # INPUT VECTOR DEFINITION
 # nn = np.zeros((1,N));                    # input elevator
-w  = np.random.randn(N)/np.sqrt(dt);     # scaled input hor. turbulence the sqrt(dt) because of lsim
-u  = np.zeros((3,N))                       # input vector definition (vertical
+w   = np.random.randn(N)/np.sqrt(dt);     # scaled input hor. turbulence the sqrt(dt) because of lsim
+u   = np.zeros((3,N))                       # input vector definition (vertical
+u_h = np.zeros((3,N))
+u_v = np.zeros((3,N))
 
     # Pass on the turbulence input (horizonatal/ vertical):
 u[windex,:] = w
@@ -139,7 +233,7 @@ u[windex,:] = w
                                 # STABILITY & PRELIMIANRY CHECKS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-pole,zero = control.pzmap(model_ss,grid=True)
+# pole,zero = control.pzmap(model_ss,grid=True)
 
 # H_matrix [output, input]
 
@@ -162,9 +256,17 @@ if Niter > 1:
 
     yout  = ysum/Niter
 else:
-    w  = np.random.randn(N)/np.sqrt(dt);     # scaled input by sqrt(dt) because of lsim
+    w  = np.random.randn(N)/np.sqrt(dt)     # scaled input by sqrt(dt) because of lsim
     u[windex,:] = w
     yout = cm.lsim(model_ss,np.transpose(u),t)[0]
+
+
+# Just once - combined (for plotting)
+u_h[1,:] = w
+yout_h = cm.lsim(model_ss,np.transpose(u_h),t)[0]
+
+u_v[2,:] = w
+yout_v = cm.lsim(model_ss,np.transpose(u_v),t)[0]
 
 if yout.shape[1] !=5:
     print("Number of model states retreived is: " + str(yout.shape[1]))
@@ -185,17 +287,17 @@ if yout.shape[1] !=5:
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 if not plottingflag:
-    if np.all(u[2,:] == 0. ) and np.all(u[0,:] == 0. ) :
+    if np.any(u[1,:] != 0. ) and np.all(u[0,:] == 0. ) :
         print("\n\n   Plot response to horizontal turbulence... \n\n")
         plotting(yout, t, u, title="Horizontal_turbulence")
 
-
-
-    if np.all(u[1,:] == 0. ) and np.all(u[0,:] == 0. ):
+    if np.any(u[2,:] != 0. ) and np.all(u[0,:] == 0. ):
         print("\n\n   Plot response to vertical turbulence.. \n\n")
         plotting(yout, t, u, title="Vertical_turbulence")
 
-
+    if combined_plot:
+        print("\n\n   Plot combined response to turbulence.. \n\n")
+        fig = plotting_combined(yout_h,yout_v, t, u, title="Combined")
 
 
 
@@ -208,7 +310,7 @@ W = W/dt     # CD scaling - this will be needed later for Lyapunov
 
 
 #      Define frequnecy axis:
-freq  = (1/T) * np.arange(1,N//2)
+freq  = (1/T) * np.arange(1,N)
 omega = 2*np.pi*freq
 
 
@@ -285,20 +387,25 @@ for i in range(len(output_names)):
         Syy_exp[output_names[i]] = 1/N * Y * np.conjugate(Y)                # discrete
         Syy_exp[output_names[i]] = np.real(Syy_exp[output_names[i]]) * dt   # continuous
 
+        #np.real is taken to force the variable to be lsited as object dtype = float for futre plotting
+        # the imaginary part should be and it is (verified) 0 for all omega
+
 
     # Generate FILTERED PERIODOGRAMS:
 
 for i in range(len(output_names)):
-    Syy_expfilt[output_names[i]]  = np.copy((Syy_exp[output_names[i]]))      #initialize with first version of the vector
+    Syy_expfilt[output_names[i]]  = np.copy((Syy_exp[output_names[i]]))      # initialize with first version of the vector
     Syy_expfilt[output_names[i]][1:len(omega)-1] = 0.25 * Syy_exp[output_names[i]][:len(omega)-2]\
                                               +0.5 * Syy_exp[output_names[i]][1:len(omega)-1]\
                                          +0.25 * Syy_exp[output_names[i]][1:len(omega)-1]
 
 
-    # Plotting:
 
-label_lst =[r'$S_{uu}$',r'$S_{\alpha \alpha}$',r'$S_{\theta \theta}$',r'$S_{qc/V qc/V}$',r'$S_{n_{z} n_{z}}$']
-unit_lst = [r' [$rad^2$',r' [$rad^2$',r' [$rad^2$',r' [$rad^2$',r' [$1$']
+
+    # Plotting :
+
+label_lst =[r'$S_{\hat{u} \hat{u}}$', r'$S_{\alpha \alpha}$', r'$S_{\theta \theta}$', r'$S_{~\frac{q \cdot c}{V}\frac{q \cdot c}{V}}$', r'$S_{n_{z} n_{z}}$']
+unit_lst = [r'$~[\frac{1}{Hz}$]', r'$~\left [ \frac{rad^2}{Hz} \right ]$', r'$~\left [ \frac{rad^2}{Hz} \right ]$', r'$~\left [ \frac{rad^2}{Hz} \right ]$', r'$~\left [ \frac{1}{Hz} \right ]$']
 
 if plottingflag:
     for i in range(len(output_names)):
@@ -308,16 +415,17 @@ if plottingflag:
         mag_filt[output_names[i]] = np.absolute(Syy_expfilt[output_names[i]][1:N//2])   # WITH filter
 
 
-        plotname = str("Syy_" + output_names[i] + '_v')
+        plotname = str("Syy_" + output_names[i] + '_h')
         plt.figure(plotname)
-        plt.loglog(omega,mag_exp[output_names[i]],'-',  c = 'blue',  label = 'Experimental')
-        plt.loglog(omega,mag_filt[output_names[i]],'-', c = 'green', label = 'Exp. Filtered')
-        plt.loglog(omega,mag_ana[output_names[i]],'--', c = 'red'  , label = 'Analytical')
+        plt.loglog(omega[1:N//2],mag_exp[output_names[i]],'-',  c = 'blue',  label = 'Experimental')
+        plt.loglog(omega[1:N//2],mag_filt[output_names[i]],'-', c = 'green', label = 'Experimental - Filtered')
+        plt.loglog(omega[1:],mag_ana[output_names[i]][1:],'--', c = 'red'  , label = 'Analytical')
 
         plt.grid(True)
-        plt.legend(loc='best')
-        plt.xlabel(r"$\omega$ [rad/s]")
-        plt.ylabel(label_lst[i] + unit_lst[i] + '/Hz]')
+        plt.legend(loc='lower center')
+        plt.xlabel(r'$\omega~ \left [ \frac{rad}{s} \right ]$')
+        plt.ylabel(label_lst[i] + unit_lst[i] )
+        plt.tight_layout()
         # plt.ylim(EPS/10,10)
 
 
