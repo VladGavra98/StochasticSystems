@@ -47,7 +47,7 @@ N     = len(t)             # number of samples
     # 2 for w3  = vertical
 
 turb_lst = ['none','horizontal','vertical']
-windex       = 1            # CHANGE THIS
+windex       = 2            # CHANGE THIS
 plottingflag = True         # Switch for plotting in time (False) or frequency (True)
 combined_plot= True
 
